@@ -1,9 +1,9 @@
 package com.agroorbit.api.dao.impl;
 
 import com.agroorbit.api.config.OracleConnectionFactory;
-import com.agroorbit.api.dao.FazendaDAO;
 import com.agroorbit.api.dao.LeituraDAO;
 import com.agroorbit.api.exception.DatabaseException;
+import com.agroorbit.api.model.Fazenda;
 import com.agroorbit.api.model.LeituraSatelite;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Repository;
@@ -17,7 +17,6 @@ import java.util.*;
 public class LeituraDAOImpl implements LeituraDAO {
 
     private final OracleConnectionFactory connectionFactory;
-    private final FazendaDAO fazendaDAO;
 
     @Override
     public LeituraSatelite save(LeituraSatelite leitura) {
@@ -62,8 +61,10 @@ public class LeituraDAOImpl implements LeituraDAO {
         String sql = """
             SELECT l.id, l.fazenda_id, l.indice_ndvi, l.temperatura_media,
                    l.umidade_solo, l.irradiancia_solar, l.nivel_risco,
-                   l.recomendacao, l.score_risco, l.data_leitura
+                   l.recomendacao, l.score_risco, l.data_leitura,
+                   f.nome, f.proprietario, f.estado, f.municipio, f.cultura_plantada
             FROM leituras_satelite l
+            JOIN fazendas f ON f.id = l.fazenda_id
             WHERE l.fazenda_id = ?
             ORDER BY l.data_leitura DESC
             FETCH FIRST 1 ROW ONLY
@@ -88,8 +89,10 @@ public class LeituraDAOImpl implements LeituraDAO {
         String sql = """
             SELECT l.id, l.fazenda_id, l.indice_ndvi, l.temperatura_media,
                    l.umidade_solo, l.irradiancia_solar, l.nivel_risco,
-                   l.recomendacao, l.score_risco, l.data_leitura
+                   l.recomendacao, l.score_risco, l.data_leitura,
+                   f.nome, f.proprietario, f.estado, f.municipio, f.cultura_plantada
             FROM leituras_satelite l
+            JOIN fazendas f ON f.id = l.fazenda_id
             WHERE l.score_risco >= ?
             ORDER BY l.score_risco DESC
             """;
@@ -153,9 +156,14 @@ public class LeituraDAOImpl implements LeituraDAO {
     }
 
     private LeituraSatelite mapRow(ResultSet rs) throws SQLException {
-        Long fazendaId = rs.getLong("fazenda_id");
-        var fazenda = fazendaDAO.findByEmail("") // placeholder — fazenda carregada por id via join se necessário
-                .orElse(com.agroorbit.api.model.Fazenda.builder().id(fazendaId).build());
+        Fazenda fazenda = Fazenda.builder()
+                .id(rs.getLong("fazenda_id"))
+                .nome(rs.getString("nome"))
+                .proprietario(rs.getString("proprietario"))
+                .estado(rs.getString("estado"))
+                .municipio(rs.getString("municipio"))
+                .culturaPlantada(rs.getString("cultura_plantada"))
+                .build();
 
         return LeituraSatelite.builder()
                 .id(rs.getLong("id"))

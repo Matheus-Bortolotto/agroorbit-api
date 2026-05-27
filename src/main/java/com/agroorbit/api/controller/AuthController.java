@@ -9,7 +9,6 @@ import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.Map;
@@ -22,13 +21,11 @@ import java.util.Map;
 public class AuthController {
 
     private final JwtService jwtService;
-    private final PasswordEncoder passwordEncoder;
 
-    // Usuários mockados — em produção viriam do banco
     private static final Map<String, String[]> USUARIOS = Map.of(
-            "admin@ford.com",    new String[]{ "$2a$10$7QfkPNMBVpBmYlHkL8B0FOx7F5QZq5Qx5Qx5Qx5Qx5Qx5Qx5Qx5Q", "ADMIN" },
-            "analista@ford.com", new String[]{ "$2a$10$7QfkPNMBVpBmYlHkL8B0FOx7F5QZq5Qx5Qx5Qx5Qx5Qx5Qx5Qx5Q", "ANALISTA" },
-            "gerente@ford.com",  new String[]{ "$2a$10$7QfkPNMBVpBmYlHkL8B0FOx7F5QZq5Qx5Qx5Qx5Qx5Qx5Qx5Qx5Q", "GERENTE" }
+            "admin@agroorbit.com",      new String[]{ "agroorbit2026", "ADMIN" },
+            "fazendeiro@agroorbit.com", new String[]{ "agroorbit2026", "FAZENDEIRO" },
+            "analista@agroorbit.com",   new String[]{ "agroorbit2026", "ANALISTA" }
     );
 
     @PostMapping("/login")
@@ -38,17 +35,8 @@ public class AuthController {
 
         String[] userData = USUARIOS.get(request.getEmail());
 
-        // Credenciais inválidas — mensagem genérica (não revela se email existe)
-        if (userData == null) {
-            log.warn("[SECURITY] Login falhou para email: {}", request.getEmail());
-            return ResponseEntity.status(401).body(
-                    Map.of("erro", "Credenciais inválidas")
-            );
-        }
-
-        // Para simplificar o mock: aceita senha "ford2026" para todos
-        if (!"ford2026".equals(request.getSenha())) {
-            log.warn("[SECURITY] Senha incorreta para: {}", request.getEmail());
+        if (userData == null || !userData[0].equals(request.getSenha())) {
+            log.warn("[SECURITY] Login falhou para: {}", request.getEmail());
             return ResponseEntity.status(401).body(
                     Map.of("erro", "Credenciais inválidas")
             );
