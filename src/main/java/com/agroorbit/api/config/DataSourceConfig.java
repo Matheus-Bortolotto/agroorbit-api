@@ -11,16 +11,16 @@ import javax.sql.DataSource;
 @Configuration
 public class DataSourceConfig {
 
-    @Value("${oracle.datasource.url}")
+    @Value("${spring.datasource.url}")
     private String url;
 
-    @Value("${oracle.datasource.username}")
+    @Value("${spring.datasource.username}")
     private String username;
 
-    @Value("${oracle.datasource.password}")
+    @Value("${spring.datasource.password}")
     private String password;
 
-    @Value("${oracle.datasource.driver-class-name}")
+    @Value("${spring.datasource.driver-class-name}")
     private String driverClassName;
 
     @Bean

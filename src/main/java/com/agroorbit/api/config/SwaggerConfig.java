@@ -14,14 +14,14 @@ import org.springframework.context.annotation.Configuration;
 public class SwaggerConfig {
 
     @Bean
-    public OpenAPI fordRetainOpenAPI() {
+    public OpenAPI agroOrbitOpenAPI() {
         return new OpenAPI()
                 .info(new Info()
                         .title("AgroOrbit API")
-                        .description("API de Retencao Preditiva de Clientes Ford. Desenvolvido como parte do Challenge Ford FIAP 2026.")
+                        .description("API de Monitoramento Agricola via Satelite - FIAP Global Solution 2026")
                         .version("1.0.0")
                         .contact(new Contact()
-                                .name("Equipe FordRetain - FIAP")
+                                .name("Equipe AgroOrbit - FIAP")
                                 .email("grupo@fiap.com.br"))
                         .license(new License()
                                 .name("Uso Academico")
@@ -33,6 +33,6 @@ public class SwaggerConfig {
                                         .type(SecurityScheme.Type.HTTP)
                                         .scheme("bearer")
                                         .bearerFormat("JWT")
-                                        .description("Insira o token JWT obtido no endpoint /auth/login")));
+                                        .description("Insira o token JWT obtido no endpoint /api/v1/auth/login")));
     }
 }

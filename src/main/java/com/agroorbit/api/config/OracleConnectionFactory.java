@@ -1,33 +1,28 @@
 package com.agroorbit.api.config;
 
-import com.agroorbit.api.exception.DatabaseException;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Component;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
+import java.sql.SQLException;
 
+@Slf4j
 @Component
 public class OracleConnectionFactory {
 
-    @Value("${oracle.datasource.url}")
+    @Value("${spring.datasource.url}")
     private String url;
 
-    @Value("${oracle.datasource.username}")
+    @Value("${spring.datasource.username}")
     private String username;
 
-    @Value("${oracle.datasource.password}")
+    @Value("${spring.datasource.password}")
     private String password;
 
-    @Value("${oracle.datasource.driver-class-name}")
-    private String driverClassName;
-
-    public Connection getConnection() {
-        try {
-            Class.forName(driverClassName);
-            return DriverManager.getConnection(url, username, password);
-        } catch (Exception e) {
-            throw new DatabaseException("Erro ao conectar no banco Oracle", e);
-        }
+    public Connection getConnection() throws SQLException {
+        log.debug("Abrindo conexão Oracle: {}", url);
+        return DriverManager.getConnection(url, username, password);
     }
 }
