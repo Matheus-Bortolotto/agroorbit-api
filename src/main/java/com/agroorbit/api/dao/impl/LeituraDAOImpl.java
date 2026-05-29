@@ -11,6 +11,9 @@ import org.springframework.stereotype.Repository;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.*;
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.SQLException;
 
 @Repository
 @RequiredArgsConstructor
@@ -177,5 +180,20 @@ public class LeituraDAOImpl implements LeituraDAO {
                 .scoreRisco(rs.getInt("score_risco"))
                 .dataLeitura(rs.getTimestamp("data_leitura").toLocalDateTime())
                 .build();
+    }
+
+    @Override
+    public void deleteByFazendaId(Long fazendaId) {
+        String sql = "DELETE FROM leituras_satelite WHERE fazenda_id = ?";
+
+        try (Connection conn = connectionFactory.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setLong(1, fazendaId);
+            ps.executeUpdate();
+
+        } catch (SQLException e) {
+            throw new DatabaseException("Erro ao deletar leituras da fazenda", e);
+        }
     }
 }

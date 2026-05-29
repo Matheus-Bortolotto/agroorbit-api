@@ -10,12 +10,14 @@ import org.springframework.stereotype.Repository;
 import java.sql.*;
 import java.time.LocalDateTime;
 import java.util.Optional;
+import com.agroorbit.api.dao.LeituraDAO;
 
 @Repository
 @RequiredArgsConstructor
 public class FazendaDAOImpl implements FazendaDAO {
 
     private final OracleConnectionFactory connectionFactory;
+    private final LeituraDAO leituraDAO;
 
     @Override
     public Fazenda save(Fazenda fazenda) {
@@ -98,14 +100,37 @@ public class FazendaDAOImpl implements FazendaDAO {
 
     @Override
     public void deleteByEmail(String email) {
-        String sql = "DELETE FROM fazendas WHERE email = ?";
+        String buscarFazendaSql = "SELECT id FROM fazendas WHERE email = ?";
+        String deletarFazendaSql = "DELETE FROM fazendas WHERE email = ?";
 
         try (Connection conn = connectionFactory.getConnection();
-             PreparedStatement ps = conn.prepareStatement(sql)) {
+             PreparedStatement psBuscar = conn.prepareStatement(buscarFazendaSql)) {
 
-            ps.setString(1, email);
-            int rows = ps.executeUpdate();
-            if (rows == 0) throw new DatabaseException("Fazenda não encontrada para exclusão", null);
+            psBuscar.setString(1, email);
+
+            Long fazendaId = null;
+
+            try (ResultSet rs = psBuscar.executeQuery()) {
+                if (rs.next()) {
+                    fazendaId = rs.getLong("id");
+                }
+            }
+
+            if (fazendaId == null) {
+                throw new DatabaseException("Fazenda não encontrada para exclusão", null);
+            }
+
+            leituraDAO.deleteByFazendaId(fazendaId);
+
+            try (PreparedStatement psDelete = conn.prepareStatement(deletarFazendaSql)) {
+                psDelete.setString(1, email);
+
+                int rows = psDelete.executeUpdate();
+
+                if (rows == 0) {
+                    throw new DatabaseException("Fazenda não encontrada para exclusão", null);
+                }
+            }
 
         } catch (SQLException e) {
             throw new DatabaseException("Erro ao deletar fazenda", e);
