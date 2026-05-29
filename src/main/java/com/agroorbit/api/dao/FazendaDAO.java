@@ -8,5 +8,7 @@ public interface FazendaDAO {
     Fazenda save(Fazenda fazenda);
     boolean existsByEmail(String email);
     Optional<Fazenda> findByEmail(String email);
+    Fazenda update(Fazenda fazenda);
+    void deleteByEmail(String email);
     long count();
 }

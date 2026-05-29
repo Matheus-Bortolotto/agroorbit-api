@@ -4,6 +4,7 @@ import com.agroorbit.api.dao.FazendaDAO;
 import com.agroorbit.api.dao.LeituraDAO;
 import com.agroorbit.api.dto.*;
 import com.agroorbit.api.exception.FazendaJaCadastradaException;
+import com.agroorbit.api.exception.FazendaNaoEncontradaException;
 import com.agroorbit.api.model.Fazenda;
 import com.agroorbit.api.model.LeituraSatelite;
 import lombok.RequiredArgsConstructor;
@@ -77,6 +78,38 @@ public class MonitoramentoService {
                 .build();
     }
 
+    public FazendaResponseDTO getFazendaPorEmail(String email) {
+        Fazenda fazenda = fazendaDAO.findByEmail(email)
+                .orElseThrow(() -> new FazendaNaoEncontradaException(email));
+
+        return toFazendaResponse(fazenda);
+    }
+
+    public FazendaResponseDTO atualizarFazenda(String email, AtualizarFazendaDTO request) {
+        Fazenda fazenda = fazendaDAO.findByEmail(email)
+                .orElseThrow(() -> new FazendaNaoEncontradaException(email));
+
+        if (request.getNome() != null)            fazenda.setNome(request.getNome());
+        if (request.getProprietario() != null)    fazenda.setProprietario(request.getProprietario());
+        if (request.getTelefone() != null)        fazenda.setTelefone(request.getTelefone());
+        if (request.getEstado() != null)          fazenda.setEstado(request.getEstado());
+        if (request.getMunicipio() != null)       fazenda.setMunicipio(request.getMunicipio());
+        if (request.getAreaHectares() != null)    fazenda.setAreaHectares(request.getAreaHectares());
+        if (request.getCulturaPlantada() != null) fazenda.setCulturaPlantada(request.getCulturaPlantada());
+        if (request.getLatitude() != null)        fazenda.setLatitude(request.getLatitude());
+        if (request.getLongitude() != null)       fazenda.setLongitude(request.getLongitude());
+
+        Fazenda atualizada = fazendaDAO.update(fazenda);
+        return toFazendaResponse(atualizada);
+    }
+
+    public void deletarFazenda(String email) {
+        if (!fazendaDAO.existsByEmail(email)) {
+            throw new FazendaNaoEncontradaException(email);
+        }
+        fazendaDAO.deleteByEmail(email);
+    }
+
     public DashboardDTO getDashboard() {
         long total = fazendaDAO.count();
         Map<String, Long> distribuicao = leituraDAO.countByNivelRisco();
@@ -116,22 +149,36 @@ public class MonitoramentoService {
                 .collect(Collectors.toList());
     }
 
-    // ============================================================
-    // Lógica de análise baseada nos dados do satélite
-    // ============================================================
+    // ── helpers ──
+
+    private FazendaResponseDTO toFazendaResponse(Fazenda f) {
+        return FazendaResponseDTO.builder()
+                .id(f.getId())
+                .nome(f.getNome())
+                .proprietario(f.getProprietario())
+                .email(f.getEmail())
+                .telefone(f.getTelefone())
+                .estado(f.getEstado())
+                .municipio(f.getMunicipio())
+                .areaHectares(f.getAreaHectares())
+                .culturaPlantada(f.getCulturaPlantada())
+                .latitude(f.getLatitude())
+                .longitude(f.getLongitude())
+                .criadoEm(f.getCriadoEm())
+                .atualizadoEm(f.getAtualizadoEm())
+                .build();
+    }
+
+    // ── lógica de risco ──
 
     private String calcularNivelRisco(FazendaRequestDTO req) {
         double ndvi = req.getIndiceNDVI().doubleValue();
         double umidade = req.getUmidadeSolo().doubleValue();
         double temp = req.getTemperaturaMedia().doubleValue();
 
-        if (ndvi < 0.2 || umidade < 15.0 || temp > 40.0) {
-            return "CRITICO";
-        } else if (ndvi < 0.4 || umidade < 30.0 || temp > 35.0) {
-            return "ALERTA";
-        } else {
-            return "NORMAL";
-        }
+        if (ndvi < 0.2 || umidade < 15.0 || temp > 40.0) return "CRITICO";
+        if (ndvi < 0.4 || umidade < 30.0 || temp > 35.0) return "ALERTA";
+        return "NORMAL";
     }
 
     private int calcularScoreRisco(String nivelRisco, FazendaRequestDTO req) {
@@ -148,17 +195,17 @@ public class MonitoramentoService {
     private String gerarRecomendacao(String nivelRisco, FazendaRequestDTO req) {
         return switch (nivelRisco) {
             case "CRITICO" -> String.format(
-                "URGENTE: NDVI %.2f indica vegetação severamente estressada. " +
-                "Iniciar irrigação de emergência imediatamente. " +
-                "Acionar equipe técnica para avaliação presencial em até 24h.",
-                req.getIndiceNDVI());
+                    "URGENTE: NDVI %.2f indica vegetação severamente estressada. " +
+                            "Iniciar irrigação de emergência imediatamente. " +
+                            "Acionar equipe técnica para avaliação presencial em até 24h.",
+                    req.getIndiceNDVI());
             case "ALERTA" -> String.format(
-                "ATENÇÃO: Umidade do solo em %.1f%% abaixo do ideal. " +
-                "Monitorar nos próximos 3 dias e acionar irrigação se não houver melhora. " +
-                "Verificar previsão de chuvas para a região.",
-                req.getUmidadeSolo());
+                    "ATENÇÃO: Umidade do solo em %.1f%% abaixo do ideal. " +
+                            "Monitorar nos próximos 3 dias e acionar irrigação se não houver melhora. " +
+                            "Verificar previsão de chuvas para a região.",
+                    req.getUmidadeSolo());
             default -> "Lavoura dentro dos parâmetros normais. " +
-                "Próxima leitura agendada automaticamente em 48h.";
+                    "Próxima leitura agendada automaticamente em 48h.";
         };
     }
 }

@@ -21,6 +21,13 @@ public class GlobalExceptionHandler {
                 .body(new ErrorResponse(409, "Conflito", ex.getMessage(), LocalDateTime.now()));
     }
 
+    @ExceptionHandler(FazendaNaoEncontradaException.class)
+    public ResponseEntity<ErrorResponse> handleFazendaNaoEncontrada(FazendaNaoEncontradaException ex) {
+        log.warn("Não encontrado: {}", ex.getMessage());
+        return ResponseEntity.status(HttpStatus.NOT_FOUND)
+                .body(new ErrorResponse(404, "Não encontrado", ex.getMessage(), LocalDateTime.now()));
+    }
+
     @ExceptionHandler(DatabaseException.class)
     public ResponseEntity<ErrorResponse> handleDatabase(DatabaseException ex) {
         log.error("Erro de banco de dados: {}", ex.getMessage(), ex);

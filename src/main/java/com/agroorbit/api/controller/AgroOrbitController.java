@@ -1,9 +1,6 @@
 package com.agroorbit.api.controller;
 
-import com.agroorbit.api.dto.AlertaDTO;
-import com.agroorbit.api.dto.AnaliseResponseDTO;
-import com.agroorbit.api.dto.DashboardDTO;
-import com.agroorbit.api.dto.FazendaRequestDTO;
+import com.agroorbit.api.dto.*;
 import com.agroorbit.api.service.MonitoramentoService;
 import io.swagger.v3.oas.annotations.Operation;
 import io.swagger.v3.oas.annotations.Parameter;
@@ -29,63 +26,67 @@ public class AgroOrbitController {
     private final MonitoramentoService monitoramentoService;
 
     @PostMapping("/analise")
-    @Operation(
-        summary = "Analisar dados de satélite de uma fazenda",
-        description = """
-            Recebe os dados da fazenda e leituras do satélite (NDVI, temperatura, umidade)
-            e retorna:
-            - Nível de risco (NORMAL, ALERTA, CRITICO)
-            - Score de risco de 0 a 100
-            - Recomendação de ação para o fazendeiro
-            """
-    )
+    @Operation(summary = "Cadastrar fazenda e analisar dados de satélite")
     @ApiResponses({
-        @ApiResponse(responseCode = "201", description = "Análise realizada com sucesso"),
-        @ApiResponse(responseCode = "400", description = "Dados de entrada inválidos"),
-        @ApiResponse(responseCode = "409", description = "Fazenda já cadastrada com este email")
+            @ApiResponse(responseCode = "201", description = "Análise realizada com sucesso"),
+            @ApiResponse(responseCode = "400", description = "Dados inválidos"),
+            @ApiResponse(responseCode = "409", description = "Fazenda já cadastrada")
     })
-    public ResponseEntity<AnaliseResponseDTO> analisar(
-            @Valid @RequestBody FazendaRequestDTO request) {
-
+    public ResponseEntity<AnaliseResponseDTO> analisar(@Valid @RequestBody FazendaRequestDTO request) {
         log.info("POST /analise — fazenda: {}", request.getEmail());
-        AnaliseResponseDTO response = monitoramentoService.analisar(request);
-        return ResponseEntity.status(HttpStatus.CREATED).body(response);
+        return ResponseEntity.status(HttpStatus.CREATED).body(monitoramentoService.analisar(request));
+    }
+
+    @GetMapping("/fazendas/{email}")
+    @Operation(summary = "Buscar fazenda por email")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Fazenda encontrada"),
+            @ApiResponse(responseCode = "404", description = "Fazenda não encontrada")
+    })
+    public ResponseEntity<FazendaResponseDTO> getFazenda(
+            @Parameter(description = "Email da fazenda") @PathVariable String email) {
+        log.info("GET /fazendas/{}", email);
+        return ResponseEntity.ok(monitoramentoService.getFazendaPorEmail(email));
+    }
+
+    @PutMapping("/fazendas/{email}")
+    @Operation(summary = "Atualizar dados de uma fazenda")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Fazenda atualizada com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Fazenda não encontrada")
+    })
+    public ResponseEntity<FazendaResponseDTO> atualizarFazenda(
+            @Parameter(description = "Email da fazenda") @PathVariable String email,
+            @Valid @RequestBody AtualizarFazendaDTO request) {
+        log.info("PUT /fazendas/{}", email);
+        return ResponseEntity.ok(monitoramentoService.atualizarFazenda(email, request));
+    }
+
+    @DeleteMapping("/fazendas/{email}")
+    @Operation(summary = "Remover fazenda")
+    @ApiResponses({
+            @ApiResponse(responseCode = "204", description = "Fazenda removida com sucesso"),
+            @ApiResponse(responseCode = "404", description = "Fazenda não encontrada")
+    })
+    public ResponseEntity<Void> deletarFazenda(
+            @Parameter(description = "Email da fazenda") @PathVariable String email) {
+        log.info("DELETE /fazendas/{}", email);
+        monitoramentoService.deletarFazenda(email);
+        return ResponseEntity.noContent().build();
     }
 
     @GetMapping("/dashboard")
-    @Operation(
-        summary = "Dashboard geral de monitoramento",
-        description = """
-            Retorna métricas agregadas:
-            - Total de fazendas monitoradas
-            - Distribuição por nível de risco
-            - Média do índice NDVI por estado
-            """
-    )
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Dashboard gerado com sucesso")
-    })
+    @Operation(summary = "Dashboard geral de monitoramento")
     public ResponseEntity<DashboardDTO> getDashboard() {
         log.info("GET /dashboard");
         return ResponseEntity.ok(monitoramentoService.getDashboard());
     }
 
     @GetMapping("/alertas")
-    @Operation(
-        summary = "Listar fazendas em situação de risco",
-        description = """
-            Retorna fazendas com score de risco acima do mínimo informado,
-            ordenadas por prioridade (maior risco primeiro).
-            """
-    )
-    @ApiResponses({
-        @ApiResponse(responseCode = "200", description = "Lista gerada com sucesso"),
-        @ApiResponse(responseCode = "400", description = "Parâmetro scoreMinimo inválido")
-    })
+    @Operation(summary = "Listar fazendas em situação de risco")
     public ResponseEntity<List<AlertaDTO>> getAlertas(
-            @Parameter(description = "Score mínimo de risco (0-100)", example = "50")
+            @Parameter(description = "Score mínimo (0-100)", example = "50")
             @RequestParam(defaultValue = "50") int scoreMinimo) {
-
         log.info("GET /alertas — scoreMinimo: {}", scoreMinimo);
         return ResponseEntity.ok(monitoramentoService.getAlertas(scoreMinimo));
     }

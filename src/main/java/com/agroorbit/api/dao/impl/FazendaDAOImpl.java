@@ -31,7 +31,6 @@ public class FazendaDAOImpl implements FazendaDAO {
              PreparedStatement ps = conn.prepareStatement(sql, new String[]{"id"})) {
 
             LocalDateTime agora = LocalDateTime.now();
-
             ps.setString(1, fazenda.getNome());
             ps.setString(2, fazenda.getProprietario());
             ps.setString(3, fazenda.getEmail());
@@ -48,9 +47,7 @@ public class FazendaDAOImpl implements FazendaDAO {
             ps.executeUpdate();
 
             try (ResultSet rs = ps.getGeneratedKeys()) {
-                if (rs.next()) {
-                    fazenda.setId(rs.getLong(1));
-                }
+                if (rs.next()) fazenda.setId(rs.getLong(1));
             }
 
             fazenda.setCriadoEm(agora);
@@ -59,6 +56,59 @@ public class FazendaDAOImpl implements FazendaDAO {
 
         } catch (SQLException e) {
             throw new DatabaseException("Erro ao salvar fazenda", e);
+        }
+    }
+
+    @Override
+    public Fazenda update(Fazenda fazenda) {
+        String sql = """
+            UPDATE fazendas SET
+                nome = ?, proprietario = ?, telefone = ?, estado = ?,
+                municipio = ?, area_hectares = ?, cultura_plantada = ?,
+                latitude = ?, longitude = ?, atualizado_em = ?
+            WHERE email = ?
+            """;
+
+        try (Connection conn = connectionFactory.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            LocalDateTime agora = LocalDateTime.now();
+            ps.setString(1, fazenda.getNome());
+            ps.setString(2, fazenda.getProprietario());
+            ps.setString(3, fazenda.getTelefone());
+            ps.setString(4, fazenda.getEstado());
+            ps.setString(5, fazenda.getMunicipio());
+            ps.setDouble(6, fazenda.getAreaHectares());
+            ps.setString(7, fazenda.getCulturaPlantada());
+            ps.setDouble(8, fazenda.getLatitude());
+            ps.setDouble(9, fazenda.getLongitude());
+            ps.setTimestamp(10, Timestamp.valueOf(agora));
+            ps.setString(11, fazenda.getEmail());
+
+            int rows = ps.executeUpdate();
+            if (rows == 0) throw new DatabaseException("Fazenda não encontrada para update", null);
+
+            fazenda.setAtualizadoEm(agora);
+            return fazenda;
+
+        } catch (SQLException e) {
+            throw new DatabaseException("Erro ao atualizar fazenda", e);
+        }
+    }
+
+    @Override
+    public void deleteByEmail(String email) {
+        String sql = "DELETE FROM fazendas WHERE email = ?";
+
+        try (Connection conn = connectionFactory.getConnection();
+             PreparedStatement ps = conn.prepareStatement(sql)) {
+
+            ps.setString(1, email);
+            int rows = ps.executeUpdate();
+            if (rows == 0) throw new DatabaseException("Fazenda não encontrada para exclusão", null);
+
+        } catch (SQLException e) {
+            throw new DatabaseException("Erro ao deletar fazenda", e);
         }
     }
 
